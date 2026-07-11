@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "verity_horror",
+  "version": "${version}",
+  "name": "Verity: The Watcher",
+  "description": "Verity'den ilham alan bir psikolojik korku modu. Sessiz bir Gözlemci, geceleri seni izler. Kurallara uy: gözünü ondan ayırma. Ayırırsan yaklaşır.",
+  "authors": [
+    "Sen"
+  ],
+  "contact": {},
+  "license": "CC0-1.0",
+  "icon": "assets/verity_horror/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.example.verity.VerityMod"
+    ],
+    "client": [
+      "com.example.verity.client.VerityModClient"
+    ]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21",
+    "java": ">=21"
+  }
+}
