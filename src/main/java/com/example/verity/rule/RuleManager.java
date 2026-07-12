@@ -2,11 +2,13 @@ package com.example.verity.rule;
 
 import com.example.verity.entity.ModEntities;
 import com.example.verity.entity.WatcherEntity;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -41,6 +43,16 @@ public final class RuleManager {
     private static final int SURVIVE_TICKS_REQUIRED = 100;
 
     private RuleManager() {}
+
+    /**
+     * Looks sounds up by their vanilla registry name at call time, instead of
+     * referencing the SoundEvents.* constants directly. This avoids build
+     * breakage across Minecraft point releases where the type of those
+     * constants (SoundEvent vs Holder<SoundEvent>) has changed.
+     */
+    private static SoundEvent sound(String path) {
+        return BuiltInRegistries.SOUND_EVENT.get(ResourceLocation.withDefaultNamespace(path));
+    }
 
     public static void tick(MinecraftServer server) {
         if (server.getTickCount() % CHECK_INTERVAL != 0) return;
@@ -146,20 +158,28 @@ public final class RuleManager {
         watcher.teleportTo(newPos.x, newPos.y, newPos.z);
         faceTowards(watcher, player);
 
-        player.level().playSound(null, watcher.blockPosition(), SoundEvents.WARDEN_HEARTBEAT,
-                SoundSource.HOSTILE, 1.5F, 0.6F);
-        player.level().playSound(null, player.blockPosition(), SoundEvents.AMBIENT_CAVE,
-                SoundSource.AMBIENT, 1.0F, 0.5F);
+        SoundEvent heartbeat = sound("entity.warden.heartbeat");
+        if (heartbeat != null) {
+            player.level().playSound(null, watcher.blockPosition(), heartbeat, SoundSource.HOSTILE, 1.5F, 0.6F);
+        }
+        SoundEvent cave = sound("ambient.cave");
+        if (cave != null) {
+            player.level().playSound(null, player.blockPosition(), cave, SoundSource.AMBIENT, 1.0F, 0.5F);
+        }
         player.displayClientMessage(Component.literal("§4Ona bakmayı bıraktın."), true);
     }
 
     private static void jumpscare(ServerPlayer player, WatcherEntity watcher, PlayerWatcherData data) {
         ServerLevel level = (ServerLevel) player.level();
 
-        level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE,
-                SoundSource.HOSTILE, 1.2F, 0.5F);
-        level.playSound(null, player.blockPosition(), SoundEvents.WARDEN_HEARTBEAT,
-                SoundSource.HOSTILE, 2.0F, 0.3F);
+        SoundEvent explode = sound("entity.generic.explode");
+        if (explode != null) {
+            level.playSound(null, player.blockPosition(), explode, SoundSource.HOSTILE, 1.2F, 0.5F);
+        }
+        SoundEvent heartbeat = sound("entity.warden.heartbeat");
+        if (heartbeat != null) {
+            level.playSound(null, player.blockPosition(), heartbeat, SoundSource.HOSTILE, 2.0F, 0.3F);
+        }
 
         player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0));
         player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 140, 0));
@@ -209,4 +229,4 @@ public final class RuleManager {
         watcher.setYHeadRot(yaw);
         watcher.setYBodyRot(yaw);
     }
-}
+                                               }
