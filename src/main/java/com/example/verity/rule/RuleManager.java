@@ -69,7 +69,19 @@ public final class RuleManager {
 
             switch (data.state) {
                 case DORMANT -> tryTrigger(player, data);
-                case WATCHING -> updateWatching(player, data);
+                case WATCHING -> updateWatchingprivate static void updateWatching(ServerPlayer player, PlayerWatcherData data) {
+        ServerLevel level = (ServerLevel) player.level();
+        Entity entity = data.watcherId == null ? null : level.getEntity(data.watcherId);
+
+        // DEBUG
+        player.displayClientMessage(Component.literal("§eDEBUG: entity=" + (entity != null) 
+                + " look=" + (entity instanceof WatcherEntity w2 && isLookingAt(player, w2))
+                + " awayT=" + data.awayTimer), true);
+
+        if (!(entity instanceof WatcherEntity watcher) || !watcher.isAlive()) {
+            resetToDormant(data);
+            return;
+        }(player, data);
             }
         }
     }
