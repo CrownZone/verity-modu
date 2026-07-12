@@ -146,9 +146,9 @@ public final class RuleManager {
         watcher.teleportTo(newPos.x, newPos.y, newPos.z);
         faceTowards(watcher, player);
 
-        player.level().playSound(null, watcher.blockPosition(), SoundEvents.WARDEN_HEARTBEAT.value(),
+        player.level().playSound(null, watcher.blockPosition(), SoundEvents.WARDEN_HEARTBEAT,
                 SoundSource.HOSTILE, 1.5F, 0.6F);
-        player.level().playSound(null, player.blockPosition(), SoundEvents.AMBIENT_CAVE.value(),
+        player.level().playSound(null, player.blockPosition(), SoundEvents.AMBIENT_CAVE,
                 SoundSource.AMBIENT, 1.0F, 0.5F);
         player.displayClientMessage(Component.literal("§4Ona bakmayı bıraktın."), true);
     }
@@ -156,9 +156,9 @@ public final class RuleManager {
     private static void jumpscare(ServerPlayer player, WatcherEntity watcher, PlayerWatcherData data) {
         ServerLevel level = (ServerLevel) player.level();
 
-        level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(),
+        level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE,
                 SoundSource.HOSTILE, 1.2F, 0.5F);
-        level.playSound(null, player.blockPosition(), SoundEvents.WARDEN_HEARTBEAT.value(),
+        level.playSound(null, player.blockPosition(), SoundEvents.WARDEN_HEARTBEAT,
                 SoundSource.HOSTILE, 2.0F, 0.3F);
 
         player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0));
@@ -209,4 +209,4 @@ public final class RuleManager {
         watcher.setYHeadRot(yaw);
         watcher.setYBodyRot(yaw);
     }
-                        }
+}
