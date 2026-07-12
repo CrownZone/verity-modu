@@ -9,4 +9,8 @@ public class PlayerWatcherData {
     public int lookTimer = 0;
     public int awayTimer = 0;
     public int cooldown = 0;
+
+    // Sleep-watcher feature: independent of the main dormant/watching cycle.
+    public boolean wasSleeping = false;
+    public UUID sleepWatcherId = null;
 }
