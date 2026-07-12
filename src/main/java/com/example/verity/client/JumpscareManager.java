@@ -2,6 +2,7 @@ package com.example.verity.client;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -58,7 +59,7 @@ public final class JumpscareManager {
         }
     }
 
-    private static void onHudRender(GuiGraphics guiGraphics, float tickDelta) {
+    private static void onHudRender(GuiGraphics guiGraphics, DeltaTracker deltaTracker) {
         if (displayTimer <= 0) return;
 
         int width = guiGraphics.guiWidth();
