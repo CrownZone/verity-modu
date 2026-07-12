@@ -44,12 +44,6 @@ public final class RuleManager {
 
     private RuleManager() {}
 
-    /**
-     * Looks sounds up by their vanilla registry name at call time, instead of
-     * referencing the SoundEvents.* constants directly. This avoids build
-     * breakage across Minecraft point releases where the type of those
-     * constants (SoundEvent vs Holder<SoundEvent>) has changed.
-     */
     private static SoundEvent sound(String path) {
         return BuiltInRegistries.SOUND_EVENT.get(ResourceLocation.withDefaultNamespace(path));
     }
@@ -69,19 +63,7 @@ public final class RuleManager {
 
             switch (data.state) {
                 case DORMANT -> tryTrigger(player, data);
-                case WATCHING -> updateWatchingprivate static void updateWatching(ServerPlayer player, PlayerWatcherData data) {
-        ServerLevel level = (ServerLevel) player.level();
-        Entity entity = data.watcherId == null ? null : level.getEntity(data.watcherId);
-
-        // DEBUG
-        player.displayClientMessage(Component.literal("§eDEBUG: entity=" + (entity != null) 
-                + " look=" + (entity instanceof WatcherEntity w2 && isLookingAt(player, w2))
-                + " awayT=" + data.awayTimer), true);
-
-        if (!(entity instanceof WatcherEntity watcher) || !watcher.isAlive()) {
-            resetToDormant(data);
-            return;
-        }(player, data);
+                case WATCHING -> updateWatching(player, data);
             }
         }
     }
@@ -126,13 +108,17 @@ public final class RuleManager {
         Entity entity = data.watcherId == null ? null : level.getEntity(data.watcherId);
 
         if (!(entity instanceof WatcherEntity watcher) || !watcher.isAlive()) {
+            player.displayClientMessage(Component.literal("§eDEBUG: watcher entity kayip, dormant'a donuluyor"), false);
             resetToDormant(data);
             return;
         }
 
+        boolean looking = isLookingAt(player, watcher);
+        player.displayClientMessage(Component.literal("§eDEBUG look=" + looking + " awayT=" + data.awayTimer + " lookT=" + data.lookTimer), true);
+
         double distance = player.position().distanceTo(watcher.position());
 
-        if (isLookingAt(player, watcher)) {
+        if (looking) {
             data.lookTimer += CHECK_INTERVAL;
             data.awayTimer = 0;
 
@@ -241,4 +227,4 @@ public final class RuleManager {
         watcher.setYHeadRot(yaw);
         watcher.setYBodyRot(yaw);
     }
-                                               }
+}
