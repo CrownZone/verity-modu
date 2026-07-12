@@ -41,6 +41,8 @@ public final class RuleManager {
     private static final double MAX_SIGHT_DISTANCE = 48.0;
     private static final int LOOK_AWAY_GRACE = 20;
     private static final int SURVIVE_TICKS_REQUIRED = 100;
+    private static final double SLEEP_WATCHER_CHANCE = 0.5;
+    private static final double SLEEP_WATCHER_DISTANCE = 2.0;
 
     private RuleManager() {}
 
@@ -56,6 +58,8 @@ public final class RuleManager {
 
             PlayerWatcherData data = DATA.computeIfAbsent(player.getUUID(), id -> new PlayerWatcherData());
 
+            handleSleep(player, data);
+
             if (data.cooldown > 0) {
                 data.cooldown -= CHECK_INTERVAL;
                 continue;
@@ -67,6 +71,59 @@ public final class RuleManager {
             }
         }
     }
+
+    // --- Sleep watcher ---------------------------------------------------------
+
+    private static void handleSleep(ServerPlayer player, PlayerWatcherData data) {
+        boolean sleepingNow = player.isSleeping();
+
+        if (sleepingNow && !data.wasSleeping) {
+            data.wasSleeping = true;
+            if (RANDOM.nextDouble() < SLEEP_WATCHER_CHANCE) {
+                spawnSleepWatcher(player, data);
+            }
+        } else if (!sleepingNow && data.wasSleeping) {
+            data.wasSleeping = false;
+            if (data.sleepWatcherId != null) {
+                ServerLevel level = (ServerLevel) player.level();
+                Entity entity = level.getEntity(data.sleepWatcherId);
+                if (entity != null) entity.discard();
+                data.sleepWatcherId = null;
+            }
+        }
+    }
+
+    private static void spawnSleepWatcher(ServerPlayer player, PlayerWatcherData data) {
+        ServerLevel level = (ServerLevel) player.level();
+
+        Vec3 bedPos = player.getSleepingPos()
+                .map(pos -> Vec3.atCenterOf(pos))
+                .orElse(player.position());
+
+        double yaw = Math.toRadians(player.getYRot());
+        double dx = -Math.sin(yaw) * SLEEP_WATCHER_DISTANCE;
+        double dz = Math.cos(yaw) * SLEEP_WATCHER_DISTANCE;
+
+        WatcherEntity watcher = new WatcherEntity(ModEntities.WATCHER, level);
+        watcher.moveTo(bedPos.x + dx, bedPos.y, bedPos.z + dz, 0, 0);
+
+        double fdx = player.getX() - watcher.getX();
+        double fdz = player.getZ() - watcher.getZ();
+        float watcherYaw = (float) (Mth.atan2(fdz, fdx) * (180.0 / Math.PI)) - 90.0F;
+        watcher.setYRot(watcherYaw);
+        watcher.setYHeadRot(watcherYaw);
+        watcher.setYBodyRot(watcherYaw);
+
+        level.addFreshEntity(watcher);
+        data.sleepWatcherId = watcher.getUUID();
+
+        SoundEvent laugh = sound("entity.witch.celebrate");
+        if (laugh != null) {
+            level.playSound(null, watcher.blockPosition(), laugh, SoundSource.HOSTILE, 1.0F, 0.8F);
+        }
+    }
+
+    // --- Spawning ---------------------------------------------------------
 
     private static void tryTrigger(ServerPlayer player, PlayerWatcherData data) {
         Level level = player.level();
@@ -103,22 +160,20 @@ public final class RuleManager {
         return new Vec3(x, y, z);
     }
 
+    // --- Active encounter ---------------------------------------------------------
+
     private static void updateWatching(ServerPlayer player, PlayerWatcherData data) {
         ServerLevel level = (ServerLevel) player.level();
         Entity entity = data.watcherId == null ? null : level.getEntity(data.watcherId);
 
         if (!(entity instanceof WatcherEntity watcher) || !watcher.isAlive()) {
-            player.displayClientMessage(Component.literal("§eDEBUG: watcher entity kayip, dormant'a donuluyor"), false);
             resetToDormant(data);
             return;
         }
 
-        boolean looking = isLookingAt(player, watcher);
-        player.displayClientMessage(Component.literal("§eDEBUG look=" + looking + " awayT=" + data.awayTimer + " lookT=" + data.lookTimer), true);
-
         double distance = player.position().distanceTo(watcher.position());
 
-        if (looking) {
+        if (isLookingAt(player, watcher)) {
             data.lookTimer += CHECK_INTERVAL;
             data.awayTimer = 0;
 
@@ -199,6 +254,8 @@ public final class RuleManager {
         data.awayTimer = 0;
     }
 
+    // --- Helpers ---------------------------------------------------------
+
     private static boolean isLookingAt(ServerPlayer player, WatcherEntity watcher) {
         Vec3 eye = player.getEyePosition();
         Vec3 target = watcher.getEyePosition();
@@ -227,4 +284,4 @@ public final class RuleManager {
         watcher.setYHeadRot(yaw);
         watcher.setYBodyRot(yaw);
     }
-}
+    }
