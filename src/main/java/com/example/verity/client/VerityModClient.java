@@ -9,6 +9,7 @@ public class VerityModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         EntityRendererRegistry.register(ModEntities.WATCHER, WatcherRenderer::new);
+        EntityRendererRegistry.register(ModEntities.TOTEM_GUARDIAN, WatcherRenderer::new);
         JumpscareManager.register();
     }
 }
