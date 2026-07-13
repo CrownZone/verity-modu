@@ -1,14 +1,19 @@
-package com.example.verity.client;
+package com.example.verity;
 
 import com.example.verity.entity.ModEntities;
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import com.example.verity.rule.CourageTotem;
+import com.example.verity.rule.RuleManager;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
-public class VerityModClient implements ClientModInitializer {
+public class VerityMod implements ModInitializer {
+
+    public static final String MOD_ID = "verity_horror";
 
     @Override
-    public void onInitializeClient() {
-        EntityRendererRegistry.register(ModEntities.WATCHER, WatcherRenderer::new);
-        JumpscareManager.register();
+    public void onInitialize() {
+        ModEntities.register();
+        ServerTickEvents.END_SERVER_TICK.register(RuleManager::tick);
+        CourageTotem.register();
     }
 }
