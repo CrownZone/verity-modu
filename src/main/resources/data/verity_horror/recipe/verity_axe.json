@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GD",
+    "GS",
+    " S"
+  ],
+  "key": {
+    "G": { "item": "minecraft:gold_ingot" },
+    "D": { "item": "minecraft:diamond" },
+    "S": { "item": "minecraft:stick" }
+  },
+  "result": {
+    "id": "verity_horror:verity_axe",
+    "count": 1
+  }
+}
