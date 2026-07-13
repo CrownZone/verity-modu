@@ -20,8 +20,16 @@ public class ModEntities {
                     .build()
     );
 
-    /** Call once from the mod's onInitialize(). */
+    public static final EntityType<TotemGuardianEntity> TOTEM_GUARDIAN = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE,
+            ResourceLocation.fromNamespaceAndPath(VerityMod.MOD_ID, "totem_guardian"),
+            FabricEntityTypeBuilder.create(MobCategory.MONSTER, TotemGuardianEntity::new)
+                    .dimensions(EntityDimensions.scalable(0.6F, 1.95F))
+                    .build()
+    );
+
     public static void register() {
         FabricDefaultAttributeRegistry.register(WATCHER, WatcherEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(TOTEM_GUARDIAN, TotemGuardianEntity.createAttributes());
     }
 }
