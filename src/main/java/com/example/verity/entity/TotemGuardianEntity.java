@@ -10,12 +10,6 @@ import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
-/**
- * The guardian summoned by the Courage Totem. A real hostile mob (keeps
- * vanilla zombie AI so it actually chases and attacks), but immune to
- * sunlight burning, with custom health/attack stats, and drops our custom
- * sword on death.
- */
 public class TotemGuardianEntity extends Zombie {
 
     public TotemGuardianEntity(EntityType<? extends Zombie> type, Level level) {
@@ -37,6 +31,6 @@ public class TotemGuardianEntity extends Zombie {
     @Override
     protected void dropCustomDeathLoot(ServerLevel level, DamageSource damageSource, boolean recentlyHit) {
         super.dropCustomDeathLoot(level, damageSource, recentlyHit);
-        this.spawnAtLocation(level, new ItemStack(ModItems.VERITY_SWORD));
+        this.spawnAtLocation(new ItemStack(ModItems.VERITY_SWORD), 0.0F);
     }
 }
