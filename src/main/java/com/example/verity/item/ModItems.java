@@ -14,15 +14,15 @@ public final class ModItems {
 
     public static final Item VERITY_SWORD = register("verity_sword",
             new SwordItem(Tiers.NETHERITE,
-                    new Item.Properties().attributes(SwordItem.createAttributes(Tiers.NETHERITE, 10.0F, 1.6F))));
+                    new Item.Properties().attributes(SwordItem.createAttributes(Tiers.NETHERITE, 10, 1.6F))));
 
     public static final Item VERITY_AXE = register("verity_axe",
             new AxeItem(Tiers.NETHERITE,
-                    new Item.Properties().attributes(AxeItem.createAttributes(Tiers.NETHERITE, 12.0F, 1.0F))));
+                    new Item.Properties().attributes(AxeItem.createAttributes(Tiers.NETHERITE, 12, 1.0F))));
 
     public static final Item VERITY_PICKAXE = register("verity_pickaxe",
             new PickaxeItem(Tiers.NETHERITE,
-                    new Item.Properties().attributes(PickaxeItem.createAttributes(Tiers.NETHERITE, 7.0F, 1.2F))));
+                    new Item.Properties().attributes(PickaxeItem.createAttributes(Tiers.NETHERITE, 7, 1.2F))));
 
     private ModItems() {}
 
