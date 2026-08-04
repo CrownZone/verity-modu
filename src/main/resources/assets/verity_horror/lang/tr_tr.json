@@ -1,6 +1,7 @@
 {
   "entity.verity_horror.watcher": "Gözlemci",
   "entity.verity_horror.totem_guardian": "Totem Bekçisi",
+  "entity.verity_horror.final_verity": "Verity",
   "item.verity_horror.verity_sword": "Lanetli Kılıç",
   "item.verity_horror.verity_axe": "Lanetli Balta",
   "item.verity_horror.verity_pickaxe": "Lanetli Kazma",
@@ -9,5 +10,7 @@
   "advancements.verity_horror.caught.title": "Yakalandın",
   "advancements.verity_horror.caught.description": "Watcher tarafından yakalan",
   "advancements.verity_horror.survived.title": "Dayandın",
-  "advancements.verity_horror.survived.description": "Watcher'a bakarak hayatta kal"
+  "advancements.verity_horror.survived.description": "Watcher'a bakarak hayatta kal",
+  "advancements.verity_horror.defeated_verity.title": "Yüzleşme",
+  "advancements.verity_horror.defeated_verity.description": "Verity'yi nihai formunda yen"
 }
