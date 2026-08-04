@@ -17,4 +17,7 @@ public class PlayerWatcherData {
     // Morning stalker feature: independent of the other two.
     public UUID morningWatcherId = null;
     public int morningCooldown = 0;
+
+    // Ambient horror sounds: independent random-interval sound cues.
+    public int ambientCooldown = 200;
 }
