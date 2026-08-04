@@ -52,7 +52,7 @@ public final class JumpscareManager {
         displayTimer = DISPLAY_TICKS;
 
         SoundEvent scarySound = BuiltInRegistries.SOUND_EVENT.get(
-                ResourceLocation.withDefaultNamespace("entity.warden.roar"));
+                ResourceLocation.withDefaultNamespace("entity.ghast.scream"));
 
         if (scarySound != null) {
             client.getSoundManager().play(SimpleSoundInstance.forUI(scarySound, 1.0F));
