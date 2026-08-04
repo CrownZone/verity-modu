@@ -2,6 +2,7 @@ package com.example.verity.rule;
 
 import com.example.verity.entity.ModEntities;
 import com.example.verity.entity.WatcherEntity;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -63,11 +64,32 @@ public final class RuleManager {
             "block.stone.break",
             "block.stone.hit"
     };
+    private static final String[] WHISPER_SOUNDS = {
+            "entity.enderman.ambient",
+            "entity.vex.ambient"
+    };
+    private static final double WHISPER_CHANCE = 0.25;
+
+    private static final double PERIPHERAL_SPAWN_CHANCE = 1.0 / 300.0;
+    private static final double PERIPHERAL_MIN_ANGLE = 35.0;
+    private static final double PERIPHERAL_MAX_ANGLE = 75.0;
+    private static final double PERIPHERAL_DISTANCE = 10.0;
+    private static final int PERIPHERAL_LIFETIME = 100;
+    private static final int PERIPHERAL_MIN_COOLDOWN = 2400;
+    private static final int PERIPHERAL_MAX_COOLDOWN = 6000;
 
     private RuleManager() {}
 
     private static SoundEvent sound(String path) {
         return BuiltInRegistries.SOUND_EVENT.get(ResourceLocation.withDefaultNamespace(path));
+    }
+
+    private static void grantAdvancement(ServerPlayer player, String id) {
+        MinecraftServer server = player.getServer();
+        if (server == null) return;
+        CommandSourceStack source = server.createCommandSourceStack().withSuppressedOutput();
+        server.getCommands().performPrefixedCommand(source,
+                "advancement grant " + player.getGameProfile().getName() + " only verity_horror:" + id);
     }
 
     public static void tick(MinecraftServer server) {
@@ -81,6 +103,7 @@ public final class RuleManager {
             handleSleep(player, data);
             handleMorningStalker(player, data);
             handleAmbientSounds(player, data);
+            handlePeripheralCrawler(player, data);
             RuinedHouseManager.tick(player);
 
             if (data.cooldown > 0) {
@@ -95,28 +118,111 @@ public final class RuleManager {
         }
     }
 
+    // --- Ambient sounds & whispers ---------------------------------------------------------
+
     private static void handleAmbientSounds(ServerPlayer player, PlayerWatcherData data) {
         data.ambientCooldown -= CHECK_INTERVAL;
         if (data.ambientCooldown > 0) return;
 
         ServerLevel level = (ServerLevel) player.level();
 
-        String path = AMBIENT_SOUNDS[RANDOM.nextInt(AMBIENT_SOUNDS.length)];
-        SoundEvent event = sound(path);
+        if (RANDOM.nextDouble() < WHISPER_CHANCE) {
+            String path = WHISPER_SOUNDS[RANDOM.nextInt(WHISPER_SOUNDS.length)];
+            SoundEvent event = sound(path);
+            if (event != null) {
+                float pitch = 0.5F + RANDOM.nextFloat() * 0.3F;
+                level.playSound(null, player.blockPosition(), event, SoundSource.AMBIENT, 0.4F, pitch);
+            }
+            if (RANDOM.nextDouble() < 0.4) {
+                player.displayClientMessage(Component.literal("§8...bir fısıltı duydun."), true);
+            }
+        } else {
+            String path = AMBIENT_SOUNDS[RANDOM.nextInt(AMBIENT_SOUNDS.length)];
+            SoundEvent event = sound(path);
+            if (event != null) {
+                double angle = RANDOM.nextDouble() * Math.PI * 2;
+                double distance = AMBIENT_MIN_DISTANCE + RANDOM.nextDouble() * (AMBIENT_MAX_DISTANCE - AMBIENT_MIN_DISTANCE);
+                double x = player.getX() + Math.cos(angle) * distance;
+                double z = player.getZ() + Math.sin(angle) * distance;
+                BlockPos pos = new BlockPos((int) x, player.blockPosition().getY(), (int) z);
 
-        if (event != null) {
-            double angle = RANDOM.nextDouble() * Math.PI * 2;
-            double distance = AMBIENT_MIN_DISTANCE + RANDOM.nextDouble() * (AMBIENT_MAX_DISTANCE - AMBIENT_MIN_DISTANCE);
-            double x = player.getX() + Math.cos(angle) * distance;
-            double z = player.getZ() + Math.sin(angle) * distance;
-            BlockPos pos = new BlockPos((int) x, player.blockPosition().getY(), (int) z);
-
-            float pitch = 0.7F + RANDOM.nextFloat() * 0.5F;
-            level.playSound(null, pos, event, SoundSource.AMBIENT, 0.8F, pitch);
+                float pitch = 0.7F + RANDOM.nextFloat() * 0.5F;
+                level.playSound(null, pos, event, SoundSource.AMBIENT, 0.8F, pitch);
+            }
         }
 
         data.ambientCooldown = AMBIENT_MIN_COOLDOWN + RANDOM.nextInt(Math.max(1, AMBIENT_MAX_COOLDOWN - AMBIENT_MIN_COOLDOWN));
     }
+
+    // --- Peripheral crawler ---------------------------------------------------------
+
+    private static void handlePeripheralCrawler(ServerPlayer player, PlayerWatcherData data) {
+        if (data.peripheralCooldown > 0) {
+            data.peripheralCooldown -= CHECK_INTERVAL;
+            return;
+        }
+
+        ServerLevel level = (ServerLevel) player.level();
+
+        if (data.peripheralWatcherId != null) {
+            Entity entity = level.getEntity(data.peripheralWatcherId);
+            if (!(entity instanceof WatcherEntity watcher) || !watcher.isAlive()) {
+                data.peripheralWatcherId = null;
+                data.peripheralCooldown = PERIPHERAL_MIN_COOLDOWN + RANDOM.nextInt(Math.max(1, PERIPHERAL_MAX_COOLDOWN - PERIPHERAL_MIN_COOLDOWN));
+                return;
+            }
+
+            data.peripheralTimer += CHECK_INTERVAL;
+
+            if (isLookingAt(player, watcher)) {
+                SoundEvent vanish = sound("entity.enderman.teleport");
+                if (vanish != null) {
+                    level.playSound(null, watcher.blockPosition(), vanish, SoundSource.AMBIENT, 0.6F, 1.3F);
+                }
+                player.displayClientMessage(Component.literal("§8Bir şey vardı... ama şimdi yok."), true);
+                watcher.discard();
+                data.peripheralWatcherId = null;
+                data.peripheralCooldown = PERIPHERAL_MIN_COOLDOWN + RANDOM.nextInt(Math.max(1, PERIPHERAL_MAX_COOLDOWN - PERIPHERAL_MIN_COOLDOWN));
+            } else if (data.peripheralTimer >= PERIPHERAL_LIFETIME) {
+                watcher.discard();
+                data.peripheralWatcherId = null;
+                data.peripheralCooldown = PERIPHERAL_MIN_COOLDOWN + RANDOM.nextInt(Math.max(1, PERIPHERAL_MAX_COOLDOWN - PERIPHERAL_MIN_COOLDOWN));
+            }
+            return;
+        }
+
+        if (level.dimension() != Level.OVERWORLD) return;
+        if (level.isDay()) return;
+        if (RANDOM.nextDouble() > PERIPHERAL_SPAWN_CHANCE) return;
+
+        Vec3 spawnPos = findPeripheralSpot(player);
+        if (spawnPos == null) return;
+
+        WatcherEntity watcher = new WatcherEntity(ModEntities.WATCHER, level);
+        watcher.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, 0, 0);
+        faceTowards(watcher, player);
+        level.addFreshEntity(watcher);
+
+        data.peripheralWatcherId = watcher.getUUID();
+        data.peripheralTimer = 0;
+    }
+
+    private static Vec3 findPeripheralSpot(ServerPlayer player) {
+        ServerLevel level = (ServerLevel) player.level();
+        double offsetDeg = PERIPHERAL_MIN_ANGLE + RANDOM.nextDouble() * (PERIPHERAL_MAX_ANGLE - PERIPHERAL_MIN_ANGLE);
+        double side = RANDOM.nextBoolean() ? 1.0 : -1.0;
+        double angle = Math.toRadians(player.getYRot() + side * offsetDeg);
+
+        double x = player.getX() - Math.sin(angle) * PERIPHERAL_DISTANCE;
+        double z = player.getZ() + Math.cos(angle) * PERIPHERAL_DISTANCE;
+
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) x, (int) z);
+        if (y <= level.getMinBuildHeight() + 1) return null;
+
+        return new Vec3(x, y, z);
+    }
+
+    // --- Sleep watcher ---------------------------------------------------------
 
     private static void handleSleep(ServerPlayer player, PlayerWatcherData data) {
         boolean sleepingNow = player.isSleeping();
@@ -160,6 +266,8 @@ public final class RuleManager {
             level.playSound(null, watcher.blockPosition(), laugh, SoundSource.HOSTILE, 1.0F, 0.8F);
         }
     }
+
+    // --- Morning stalker ---------------------------------------------------------
 
     private static void handleMorningStalker(ServerPlayer player, PlayerWatcherData data) {
         if (data.morningCooldown > 0) {
@@ -267,7 +375,11 @@ public final class RuleManager {
         watcher.discard();
         data.morningWatcherId = null;
         data.morningCooldown = MIN_COOLDOWN + RANDOM.nextInt(Math.max(1, MAX_COOLDOWN - MIN_COOLDOWN));
+
+        grantAdvancement(player, "caught");
     }
+
+    // --- Night watcher: spawning ---------------------------------------------------------
 
     private static void tryTrigger(ServerPlayer player, PlayerWatcherData data) {
         Level level = player.level();
@@ -304,6 +416,8 @@ public final class RuleManager {
         return new Vec3(x, y, z);
     }
 
+    // --- Night watcher: active encounter ---------------------------------------------------------
+
     private static void updateWatching(ServerPlayer player, PlayerWatcherData data) {
         ServerLevel level = (ServerLevel) player.level();
         Entity entity = data.watcherId == null ? null : level.getEntity(data.watcherId);
@@ -324,6 +438,7 @@ public final class RuleManager {
                 player.displayClientMessage(Component.literal("§8Kayboldu..."), true);
                 resetToDormant(data);
                 data.cooldown = (MIN_COOLDOWN + MAX_COOLDOWN) / 4;
+                grantAdvancement(player, "survived");
                 return;
             }
         } else {
@@ -390,6 +505,8 @@ public final class RuleManager {
 
         resetToDormant(data);
         data.cooldown = MIN_COOLDOWN + RANDOM.nextInt(Math.max(1, MAX_COOLDOWN - MIN_COOLDOWN));
+
+        grantAdvancement(player, "caught");
     }
 
     private static void resetToDormant(PlayerWatcherData data) {
@@ -398,6 +515,8 @@ public final class RuleManager {
         data.lookTimer = 0;
         data.awayTimer = 0;
     }
+
+    // --- Helpers ---------------------------------------------------------
 
     private static boolean isLookingAt(ServerPlayer player, WatcherEntity watcher) {
         Vec3 eye = player.getEyePosition();
