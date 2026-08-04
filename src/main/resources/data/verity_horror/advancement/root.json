@@ -1,0 +1,13 @@
+{
+  "display": {
+    "icon": { "item": "minecraft:red_dye" },
+    "title": { "translate": "advancements.verity_horror.root.title" },
+    "description": { "translate": "advancements.verity_horror.root.description" },
+    "background": "minecraft:textures/block/deepslate.png",
+    "show_toast": false,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "impossible": { "trigger": "minecraft:impossible" }
+  }
+}
