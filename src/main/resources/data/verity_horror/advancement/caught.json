@@ -1,0 +1,14 @@
+{
+  "parent": "verity_horror:root",
+  "display": {
+    "icon": { "item": "minecraft:redstone" },
+    "title": { "translate": "advancements.verity_horror.caught.title" },
+    "description": { "translate": "advancements.verity_horror.caught.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "impossible": { "trigger": "minecraft:impossible" }
+  }
+}
