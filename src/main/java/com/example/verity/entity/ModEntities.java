@@ -25,12 +25,20 @@ public class ModEntities {
             ResourceLocation.fromNamespaceAndPath(VerityMod.MOD_ID, "totem_guardian"),
             FabricEntityTypeBuilder.create(MobCategory.MONSTER, TotemGuardianEntity::new)
                     .dimensions(EntityDimensions.scalable(0.6F, 1.95F))
-                    .fireImmune()
+                    .build()
+    );
+
+    public static final EntityType<FinalVerityEntity> FINAL_VERITY = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE,
+            ResourceLocation.fromNamespaceAndPath(VerityMod.MOD_ID, "final_verity"),
+            FabricEntityTypeBuilder.create(MobCategory.MONSTER, FinalVerityEntity::new)
+                    .dimensions(EntityDimensions.scalable(0.7F, 2.3F))
                     .build()
     );
 
     public static void register() {
         FabricDefaultAttributeRegistry.register(WATCHER, WatcherEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(TOTEM_GUARDIAN, TotemGuardianEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(FINAL_VERITY, FinalVerityEntity.createAttributes());
     }
 }
