@@ -1,5 +1,6 @@
 package com.example.verity.rule;
 
+import com.example.verity.entity.FinalVerityEntity;
 import com.example.verity.entity.ModEntities;
 import com.example.verity.entity.WatcherEntity;
 import net.minecraft.commands.CommandSourceStack;
@@ -78,6 +79,10 @@ public final class RuleManager {
     private static final int PERIPHERAL_MIN_COOLDOWN = 2400;
     private static final int PERIPHERAL_MAX_COOLDOWN = 6000;
 
+    private static final int FINAL_SURVIVE_THRESHOLD = 5;
+    private static final int FINAL_MESSAGE_DELAY = 60;
+    private static final int FINAL_SPAWN_DELAY = 60;
+
     private RuleManager() {}
 
     private static SoundEvent sound(String path) {
@@ -104,6 +109,7 @@ public final class RuleManager {
             handleMorningStalker(player, data);
             handleAmbientSounds(player, data);
             handlePeripheralCrawler(player, data);
+            handleFinalSequence(player, data);
             RuinedHouseManager.tick(player);
 
             if (data.cooldown > 0) {
@@ -115,6 +121,68 @@ public final class RuleManager {
                 case DORMANT -> tryTrigger(player, data);
                 case WATCHING -> updateWatching(player, data);
             }
+        }
+    }
+
+    // --- Final boss sequence ---------------------------------------------------------
+
+    private static void handleFinalSequence(ServerPlayer player, PlayerWatcherData data) {
+        if (data.finalStage == 0) return;
+
+        data.finalTimer += CHECK_INTERVAL;
+
+        switch (data.finalStage) {
+            case 1 -> {
+                if (data.finalTimer == CHECK_INTERVAL) {
+                    player.displayClientMessage(Component.literal("§4§lBeni yenemezsin. Gel yanıma."), false);
+                }
+                if (data.finalTimer >= FINAL_MESSAGE_DELAY) {
+                    data.finalStage = 2;
+                    data.finalTimer = 0;
+                }
+            }
+            case 2 -> {
+                if (data.finalTimer == CHECK_INTERVAL) {
+                    player.displayClientMessage(Component.literal("§7Emin misin?"), false);
+                }
+                if (data.finalTimer >= FINAL_SPAWN_DELAY) {
+                    spawnFinalVerity(player, data);
+                    data.finalStage = 3;
+                    data.finalTimer = 0;
+                }
+            }
+            case 3 -> {
+                ServerLevel level = (ServerLevel) player.level();
+                Entity entity = data.finalBossId == null ? null : level.getEntity(data.finalBossId);
+                if (!(entity instanceof FinalVerityEntity finalBoss) || !finalBoss.isAlive()) {
+                    data.finalStage = 0;
+                    data.finalBossId = null;
+                    data.finalBossDefeated = true;
+                    grantAdvancement(player, "defeated_verity");
+                    player.displayClientMessage(Component.literal("§6§lVerity yenildi."), true);
+                }
+            }
+        }
+    }
+
+    private static void spawnFinalVerity(ServerPlayer player, PlayerWatcherData data) {
+        ServerLevel level = (ServerLevel) player.level();
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getViewVector(1.0F);
+        Vec3 spot = eye.add(look.scale(4.0));
+
+        FinalVerityEntity boss = new FinalVerityEntity(ModEntities.FINAL_VERITY, level);
+        boss.moveTo(spot.x, spot.y, spot.z, 0, 0);
+        boss.setCustomName(Component.literal("§4§lVerity"));
+        boss.setCustomNameVisible(true);
+        boss.setTarget(player);
+        level.addFreshEntity(boss);
+
+        data.finalBossId = boss.getUUID();
+
+        SoundEvent roar = sound("entity.ender_dragon.growl");
+        if (roar != null) {
+            level.playSound(null, boss.blockPosition(), roar, SoundSource.HOSTILE, 1.5F, 0.7F);
         }
     }
 
@@ -439,6 +507,12 @@ public final class RuleManager {
                 resetToDormant(data);
                 data.cooldown = (MIN_COOLDOWN + MAX_COOLDOWN) / 4;
                 grantAdvancement(player, "survived");
+
+                data.survivedCount++;
+                if (data.survivedCount >= FINAL_SURVIVE_THRESHOLD && !data.finalBossDefeated && data.finalStage == 0) {
+                    data.finalStage = 1;
+                    data.finalTimer = 0;
+                }
                 return;
             }
         } else {
@@ -546,4 +620,4 @@ public final class RuleManager {
         watcher.setYHeadRot(yaw);
         watcher.setYBodyRot(yaw);
     }
-    }
+            }
