@@ -21,15 +21,10 @@ public class PlayerWatcherData {
     public int peripheralCooldown = 200;
     public int peripheralTimer = 0;
 
+    // Final boss encounter
     public int survivedCount = 0;
     public int finalStage = 0;
     public int finalTimer = 0;
     public UUID finalBossId = null;
     public boolean finalBossDefeated = false;
-
-    // Forced confrontation: appears right in front of you, always repositions
-    // to stay in front no matter where you look.
-    public UUID confrontWatcherId = null;
-    public int confrontCooldown = 400;
-    public int confrontTimer = 0;
 }
