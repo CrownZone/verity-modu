@@ -620,4 +620,4 @@ public final class RuleManager {
         watcher.setYHeadRot(yaw);
         watcher.setYBodyRot(yaw);
     }
-            }
+        }
