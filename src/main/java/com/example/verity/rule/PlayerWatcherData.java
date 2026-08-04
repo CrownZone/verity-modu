@@ -13,4 +13,8 @@ public class PlayerWatcherData {
     // Sleep-watcher feature: independent of the main dormant/watching cycle.
     public boolean wasSleeping = false;
     public UUID sleepWatcherId = null;
+
+    // Morning stalker feature: independent of the other two.
+    public UUID morningWatcherId = null;
+    public int morningCooldown = 0;
 }
