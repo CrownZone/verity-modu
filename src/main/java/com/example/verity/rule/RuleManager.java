@@ -81,6 +81,7 @@ public final class RuleManager {
             handleSleep(player, data);
             handleMorningStalker(player, data);
             handleAmbientSounds(player, data);
+            RuinedHouseManager.tick(player);
 
             if (data.cooldown > 0) {
                 data.cooldown -= CHECK_INTERVAL;
