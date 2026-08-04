@@ -3,6 +3,8 @@ package com.example.verity.entity;
 import com.example.verity.item.ModItems;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -15,6 +17,8 @@ public class TotemGuardianEntity extends Zombie {
     public TotemGuardianEntity(EntityType<? extends Zombie> type, Level level) {
         super(type, level);
         this.setPersistenceRequired();
+        // Level 1 Regeneration, effectively permanent (huge duration).
+        this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 72000000, 0, false, false));
     }
 
     public static AttributeSupplier.Builder createAttributes() {
