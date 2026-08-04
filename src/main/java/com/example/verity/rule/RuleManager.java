@@ -2,6 +2,7 @@ package com.example.verity.rule;
 
 import com.example.verity.entity.ModEntities;
 import com.example.verity.entity.WatcherEntity;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -10,9 +11,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -41,6 +41,18 @@ public final class RuleManager {
     private static final double MAX_SIGHT_DISTANCE = 48.0;
     private static final int LOOK_AWAY_GRACE = 20;
     private static final int SURVIVE_TICKS_REQUIRED = 100;
+    private static final double SLEEP_WATCHER_CHANCE = 0.5;
+    private static final double SLEEP_WATCHER_DISTANCE = 2.0;
+
+    // --- Morning stalker tuning ---
+    private static final int MORNING_START = 0;
+    private static final int MORNING_END = 3000;
+    private static final double MORNING_SPAWN_CHANCE = 1.0 / 200.0;
+    private static final int TREE_SEARCH_RADIUS = 10;
+    private static final int TREE_SEARCH_ATTEMPTS = 40;
+    private static final double MORNING_TELEPORT_DISTANCE = 1.5;
+    private static final float MORNING_DAMAGE = 1.0F; // half a heart
+    private static final int MORNING_BLINDNESS_TICKS = 200; // 10 seconds
 
     private RuleManager() {}
 
@@ -56,6 +68,9 @@ public final class RuleManager {
 
             PlayerWatcherData data = DATA.computeIfAbsent(player.getUUID(), id -> new PlayerWatcherData());
 
+            handleSleep(player, data);
+            handleMorningStalker(player, data);
+
             if (data.cooldown > 0) {
                 data.cooldown -= CHECK_INTERVAL;
                 continue;
@@ -67,6 +82,163 @@ public final class RuleManager {
             }
         }
     }
+
+    // --- Sleep watcher ---------------------------------------------------------
+
+    private static void handleSleep(ServerPlayer player, PlayerWatcherData data) {
+        boolean sleepingNow = player.isSleeping();
+
+        if (sleepingNow && !data.wasSleeping) {
+            data.wasSleeping = true;
+            if (RANDOM.nextDouble() < SLEEP_WATCHER_CHANCE) {
+                spawnSleepWatcher(player, data);
+            }
+        } else if (!sleepingNow && data.wasSleeping) {
+            data.wasSleeping = false;
+            if (data.sleepWatcherId != null) {
+                ServerLevel level = (ServerLevel) player.level();
+                Entity entity = level.getEntity(data.sleepWatcherId);
+                if (entity != null) entity.discard();
+                data.sleepWatcherId = null;
+            }
+        }
+    }
+
+    private static void spawnSleepWatcher(ServerPlayer player, PlayerWatcherData data) {
+        ServerLevel level = (ServerLevel) player.level();
+
+        Vec3 bedPos = player.getSleepingPos()
+                .map(Vec3::atCenterOf)
+                .orElse(player.position());
+
+        double yaw = Math.toRadians(player.getYRot());
+        double dx = -Math.sin(yaw) * SLEEP_WATCHER_DISTANCE;
+        double dz = Math.cos(yaw) * SLEEP_WATCHER_DISTANCE;
+
+        WatcherEntity watcher = new WatcherEntity(ModEntities.WATCHER, level);
+        watcher.moveTo(bedPos.x + dx, bedPos.y, bedPos.z + dz, 0, 0);
+        faceTowards(watcher, player);
+
+        level.addFreshEntity(watcher);
+        data.sleepWatcherId = watcher.getUUID();
+
+        SoundEvent laugh = sound("entity.witch.celebrate");
+        if (laugh != null) {
+            level.playSound(null, watcher.blockPosition(), laugh, SoundSource.HOSTILE, 1.0F, 0.8F);
+        }
+    }
+
+    // --- Morning stalker ---------------------------------------------------------
+
+    private static void handleMorningStalker(ServerPlayer player, PlayerWatcherData data) {
+        if (data.morningCooldown > 0) {
+            data.morningCooldown -= CHECK_INTERVAL;
+            return;
+        }
+
+        ServerLevel level = (ServerLevel) player.level();
+
+        if (data.morningWatcherId != null) {
+            Entity entity = level.getEntity(data.morningWatcherId);
+            if (!(entity instanceof WatcherEntity watcher) || !watcher.isAlive()) {
+                data.morningWatcherId = null;
+                return;
+            }
+
+            if (isLookingAt(player, watcher)) {
+                triggerMorningCatch(player, watcher, data);
+            }
+            return;
+        }
+
+        if (level.dimension() != Level.OVERWORLD) return;
+        long time = level.getDayTime() % 24000L;
+        if (time < MORNING_START || time > MORNING_END) return;
+        if (RANDOM.nextDouble() > MORNING_SPAWN_CHANCE) return;
+
+        BlockPos treePos = findNearbyTree(player);
+        if (treePos == null) return;
+
+        Vec3 spawnPos = spotBehindTree(player, treePos);
+        if (spawnPos == null) return;
+
+        WatcherEntity watcher = new WatcherEntity(ModEntities.WATCHER, level);
+        watcher.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, 0, 0);
+        faceTowards(watcher, player);
+        level.addFreshEntity(watcher);
+
+        data.morningWatcherId = watcher.getUUID();
+    }
+
+    private static BlockPos findNearbyTree(ServerPlayer player) {
+        ServerLevel level = (ServerLevel) player.level();
+        BlockPos origin = player.blockPosition();
+
+        for (int i = 0; i < TREE_SEARCH_ATTEMPTS; i++) {
+            int dx = RANDOM.nextInt(TREE_SEARCH_RADIUS * 2 + 1) - TREE_SEARCH_RADIUS;
+            int dy = RANDOM.nextInt(9) - 4;
+            int dz = RANDOM.nextInt(TREE_SEARCH_RADIUS * 2 + 1) - TREE_SEARCH_RADIUS;
+            BlockPos pos = origin.offset(dx, dy, dz);
+
+            if (level.getBlockState(pos).is(BlockTags.LOGS)) {
+                return pos;
+            }
+        }
+        return null;
+    }
+
+    private static Vec3 spotBehindTree(ServerPlayer player, BlockPos treePos) {
+        double dx = treePos.getX() + 0.5 - player.getX();
+        double dz = treePos.getZ() + 0.5 - player.getZ();
+        double length = Math.sqrt(dx * dx + dz * dz);
+        if (length < 0.001) return null;
+
+        double nx = dx / length;
+        double nz = dz / length;
+
+        double x = treePos.getX() + 0.5 + nx;
+        double z = treePos.getZ() + 0.5 + nz;
+
+        ServerLevel level = (ServerLevel) player.level();
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) x, (int) z);
+        if (y <= level.getMinBuildHeight() + 1) {
+            y = treePos.getY();
+        }
+
+        return new Vec3(x, y, z);
+    }
+
+    private static void triggerMorningCatch(ServerPlayer player, WatcherEntity watcher, PlayerWatcherData data) {
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getViewVector(1.0F);
+        Vec3 frontPos = eye.add(look.scale(MORNING_TELEPORT_DISTANCE));
+
+        watcher.teleportTo(frontPos.x, frontPos.y, frontPos.z);
+        faceTowards(watcher, player);
+
+        ServerLevel level = (ServerLevel) player.level();
+
+        SoundEvent scream = sound("entity.ghast.scream");
+        if (scream != null) {
+            level.playSound(null, player.blockPosition(), scream, SoundSource.HOSTILE, 1.0F, 1.4F);
+        }
+
+        player.hurt(level.damageSources().magic(), MORNING_DAMAGE);
+
+        try {
+            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                    net.minecraft.world.effect.MobEffects.BLINDNESS, MORNING_BLINDNESS_TICKS, 0));
+        } catch (Exception ignored) {
+        }
+
+        player.displayClientMessage(Component.literal("§4§lSeni gördü."), true);
+
+        watcher.discard();
+        data.morningWatcherId = null;
+        data.morningCooldown = MIN_COOLDOWN + RANDOM.nextInt(Math.max(1, MAX_COOLDOWN - MIN_COOLDOWN));
+    }
+
+    // --- Night watcher: spawning ---------------------------------------------------------
 
     private static void tryTrigger(ServerPlayer player, PlayerWatcherData data) {
         Level level = player.level();
@@ -102,6 +274,8 @@ public final class RuleManager {
 
         return new Vec3(x, y, z);
     }
+
+    // --- Night watcher: active encounter ---------------------------------------------------------
 
     private static void updateWatching(ServerPlayer player, PlayerWatcherData data) {
         ServerLevel level = (ServerLevel) player.level();
@@ -175,13 +349,13 @@ public final class RuleManager {
             level.playSound(null, player.blockPosition(), heartbeat, SoundSource.HOSTILE, 2.0F, 0.3F);
         }
 
-        player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0));
-        player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 140, 0));
-        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 200, 1));
+        player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                net.minecraft.world.effect.MobEffects.BLINDNESS, 100, 0));
+        player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                net.minecraft.world.effect.MobEffects.CONFUSION, 140, 0));
+        player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                net.minecraft.world.effect.MobEffects.WEAKNESS, 200, 1));
 
-        // Leaves the player at exactly half a heart (1 HP) instead of dealing
-        // fixed damage, so a full-health catch and a near-death catch both
-        // end the same way.
         player.setHealth(1.0F);
 
         watcher.discard();
@@ -197,6 +371,8 @@ public final class RuleManager {
         data.lookTimer = 0;
         data.awayTimer = 0;
     }
+
+    // --- Helpers ---------------------------------------------------------
 
     private static boolean isLookingAt(ServerPlayer player, WatcherEntity watcher) {
         Vec3 eye = player.getEyePosition();
@@ -226,4 +402,4 @@ public final class RuleManager {
         watcher.setYHeadRot(yaw);
         watcher.setYBodyRot(yaw);
     }
-            }
+    }
