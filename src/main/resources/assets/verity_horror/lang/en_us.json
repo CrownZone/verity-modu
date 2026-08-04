@@ -1,6 +1,7 @@
 {
   "entity.verity_horror.watcher": "The Watcher",
   "entity.verity_horror.totem_guardian": "Totem Guardian",
+  "entity.verity_horror.final_verity": "Verity",
   "item.verity_horror.verity_sword": "Cursed Blade",
   "item.verity_horror.verity_axe": "Cursed Axe",
   "item.verity_horror.verity_pickaxe": "Cursed Pickaxe",
@@ -9,5 +10,7 @@
   "advancements.verity_horror.caught.title": "Caught",
   "advancements.verity_horror.caught.description": "Get caught by the Watcher",
   "advancements.verity_horror.survived.title": "Held Your Ground",
-  "advancements.verity_horror.survived.description": "Survive a Watcher encounter by staring it down"
+  "advancements.verity_horror.survived.description": "Survive a Watcher encounter by staring it down",
+  "advancements.verity_horror.defeated_verity.title": "Face to Face",
+  "advancements.verity_horror.defeated_verity.description": "Defeat Verity in her final form"
 }
