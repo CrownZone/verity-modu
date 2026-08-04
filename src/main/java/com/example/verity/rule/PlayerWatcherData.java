@@ -2,7 +2,6 @@ package com.example.verity.rule;
 
 import java.util.UUID;
 
-/** Per-player state tracked by the RuleManager. */
 public class PlayerWatcherData {
     public WatcherState state = WatcherState.DORMANT;
     public UUID watcherId = null;
@@ -18,8 +17,14 @@ public class PlayerWatcherData {
 
     public int ambientCooldown = 200;
 
-    // Peripheral crawler: seen only out of the corner of your eye.
     public UUID peripheralWatcherId = null;
     public int peripheralCooldown = 200;
     public int peripheralTimer = 0;
+
+    // Final boss encounter
+    public int survivedCount = 0;
+    public int finalStage = 0;
+    public int finalTimer = 0;
+    public UUID finalBossId = null;
+    public boolean finalBossDefeated = false;
 }
