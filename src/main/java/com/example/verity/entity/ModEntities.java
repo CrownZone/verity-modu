@@ -25,6 +25,7 @@ public class ModEntities {
             ResourceLocation.fromNamespaceAndPath(VerityMod.MOD_ID, "totem_guardian"),
             FabricEntityTypeBuilder.create(MobCategory.MONSTER, TotemGuardianEntity::new)
                     .dimensions(EntityDimensions.scalable(0.6F, 1.95F))
+                    .fireImmune()
                     .build()
     );
 
