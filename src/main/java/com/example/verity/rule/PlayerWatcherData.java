@@ -10,14 +10,16 @@ public class PlayerWatcherData {
     public int awayTimer = 0;
     public int cooldown = 0;
 
-    // Sleep-watcher feature: independent of the main dormant/watching cycle.
     public boolean wasSleeping = false;
     public UUID sleepWatcherId = null;
 
-    // Morning stalker feature: independent of the other two.
     public UUID morningWatcherId = null;
     public int morningCooldown = 0;
 
-    // Ambient horror sounds: independent random-interval sound cues.
     public int ambientCooldown = 200;
+
+    // Peripheral crawler: seen only out of the corner of your eye.
+    public UUID peripheralWatcherId = null;
+    public int peripheralCooldown = 200;
+    public int peripheralTimer = 0;
 }
