@@ -1,5 +1,7 @@
 package com.example.verity.rule;
 
+import com.example.verity.ai.WatcherAIBrain;
+import com.example.verity.ai.WatcherDecision;
 import com.example.verity.entity.FinalVerityEntity;
 import com.example.verity.entity.ModEntities;
 import com.example.verity.entity.WatcherEntity;
@@ -496,8 +498,11 @@ public final class RuleManager {
         }
 
         double distance = player.position().distanceTo(watcher.position());
+        boolean seen = isLookingAt(player, watcher);
 
-        if (isLookingAt(player, watcher)) {
+        maybeAskAI(player, watcher, data, seen, distance);
+
+        if (seen) {
             data.lookTimer += CHECK_INTERVAL;
             data.awayTimer = 0;
 
@@ -527,6 +532,52 @@ public final class RuleManager {
 
         if (distance <= CATCH_DISTANCE) {
             jumpscare(player, watcher, data);
+        }
+    }
+
+    // --- AI (Groq) ---------------------------------------------------------
+
+    private static WatcherAIBrain aiBrain;
+    private static boolean aiBrainInitAttempted = false;
+
+    private static WatcherAIBrain getBrain() {
+        if (!aiBrainInitAttempted) {
+            aiBrainInitAttempted = true;
+            String key = System.getenv("GROQ_API_KEY");
+            if (key != null && !key.isBlank()) {
+                aiBrain = new WatcherAIBrain(key, Runnable::run);
+            }
+        }
+        return aiBrain;
+    }
+
+    private static void maybeAskAI(ServerPlayer player, WatcherEntity watcher, PlayerWatcherData data, boolean seen, double distance) {
+        WatcherAIBrain brain = getBrain();
+        if (brain == null) return;
+
+        MinecraftServer server = player.getServer();
+        if (server == null) return;
+
+        String situation = String.format(
+                "Oyuncu %.1f blok uzakta, %s, oyuncunun canı %.0f/%.0f.",
+                distance,
+                seen ? "sana bakıyor" : "sana bakmıyor",
+                player.getHealth(), player.getMaxHealth()
+        );
+
+        brain.think(watcher.getUUID(), situation).thenAccept(decision ->
+                server.execute(() -> applyAIDecision(player, watcher, data, decision))
+        );
+    }
+
+    private static void applyAIDecision(ServerPlayer player, WatcherEntity watcher, PlayerWatcherData data, WatcherDecision decision) {
+        if (!watcher.isAlive()) return;
+
+        player.displayClientMessage(Component.literal("§4" + decision.message), true);
+
+        if (decision.action == WatcherDecision.Action.ATTACK && data.awayTimer > 0) {
+            approach(player, watcher);
+            data.awayTimer = 0;
         }
     }
 
@@ -620,4 +671,4 @@ public final class RuleManager {
         watcher.setYHeadRot(yaw);
         watcher.setYBodyRot(yaw);
     }
-        }
+}
