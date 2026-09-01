@@ -543,7 +543,10 @@ public final class RuleManager {
     private static WatcherAIBrain getBrain() {
         if (!aiBrainInitAttempted) {
             aiBrainInitAttempted = true;
-            String key = System.getenv("GROQ_API_KEY");
+            String key = System.getProperty("groq.api.key");
+            if (key == null || key.isBlank()) {
+                key = System.getenv("GROQ_API_KEY");
+            }
             if (key != null && !key.isBlank()) {
                 aiBrain = new WatcherAIBrain(key, Runnable::run);
             }
