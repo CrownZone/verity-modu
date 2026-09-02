@@ -5,6 +5,8 @@ import com.example.verity.ai.WatcherDecision;
 import com.example.verity.entity.FinalVerityEntity;
 import com.example.verity.entity.ModEntities;
 import com.example.verity.entity.WatcherEntity;
+import com.example.verity.network.JumpscarePayload;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -609,6 +611,9 @@ public final class RuleManager {
 
     private static void jumpscare(ServerPlayer player, WatcherEntity watcher, PlayerWatcherData data) {
         ServerLevel level = (ServerLevel) player.level();
+
+        int jumpscareVariant = RANDOM.nextInt(2); // 0 = eski görsel, 1 = yeni görsel
+        ServerPlayNetworking.send(player, new JumpscarePayload(jumpscareVariant));
 
         SoundEvent explode = sound("entity.generic.explode");
         if (explode != null) {
