@@ -2,10 +2,12 @@ package com.example.verity;
 
 import com.example.verity.entity.ModEntities;
 import com.example.verity.item.ModItems;
+import com.example.verity.network.JumpscarePayload;
 import com.example.verity.rule.CourageTotem;
 import com.example.verity.rule.RuleManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 
 public class VerityMod implements ModInitializer {
 
@@ -17,5 +19,6 @@ public class VerityMod implements ModInitializer {
         ModItems.register();
         ServerTickEvents.END_SERVER_TICK.register(RuleManager::tick);
         CourageTotem.register();
+        PayloadTypeRegistry.playS2C().register(JumpscarePayload.TYPE, JumpscarePayload.CODEC);
     }
 }
