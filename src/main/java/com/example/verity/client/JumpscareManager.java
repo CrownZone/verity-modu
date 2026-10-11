@@ -16,7 +16,8 @@ import java.util.Random;
  * At random intervals (2, 3, 5, 6, or 7 minutes apart), briefly covers the
  * whole screen with a jumpscare image and plays an unsettling sound. Purely
  * a client-side effect - it doesn't affect gameplay or the Watcher rule
- * mechanic.
+ * mechanic. Can also be triggered immediately via triggerCatch(), called
+ * when the server tells the client the player was just caught.
  */
 public final class JumpscareManager {
 
@@ -55,14 +56,29 @@ public final class JumpscareManager {
         tickCounter++;
         if (tickCounter >= nextIntervalTicks) {
             tickCounter = 0;
-            nextIntervalTicks = randomIntervalTicks();
             trigger(client);
         }
     }
 
     private static void trigger(Minecraft client) {
         displayTimer = DISPLAY_TICKS;
+        playScream(client);
+    }
 
+    /**
+     * Called from the server->client JumpscarePayload handler when the
+     * player gets caught (Watcher, morning stalker, forced confrontation,
+     * final boss, etc.), so the screen jumpscare fires immediately instead
+     * of waiting for the random ambient timer.
+     */
+    public static void triggerCatch(Minecraft client, int variant) {
+        displayTimer = DISPLAY_TICKS;
+        tickCounter = 0;
+        nextIntervalTicks = randomIntervalTicks();
+        playScream(client);
+    }
+
+    private static void playScream(Minecraft client) {
         SoundEvent scarySound = BuiltInRegistries.SOUND_EVENT.get(
                 ResourceLocation.withDefaultNamespace("entity.enderman.scream"));
 
